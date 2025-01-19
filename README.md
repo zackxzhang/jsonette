@@ -1,4 +1,4 @@
 # JSON Parsing from Scratch
 
-- [ ] Python
+- [x] Python
 - [ ] Haskell
