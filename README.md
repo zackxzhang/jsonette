@@ -2,3 +2,5 @@
 
 - [x] Python
 - [ ] Haskell
+- [ ] C++
+- [ ] JavaScript
