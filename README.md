@@ -1,4 +1,5 @@
-# JSON Parsing from Scratch
+# jsonette
+*json parsing from scratch*
 
 - [x] Python
 - [ ] Haskell
