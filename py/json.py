@@ -1,21 +1,30 @@
 # -*- coding: utf-8 -*-
 # json parsing in python
-# operate on bytes instead of strings (to avoid decoding and keep escapes)
 
 
-SPACES = b' \n\r\t'
-DECIMALS = b'0123456789'
-HEXADECIMALS = DECIMALS + b'abcdefABCDEF'
+SPACES = ' \n\r\t'
+DECIMALS = '0123456789'
+HEXADECIMALS = DECIMALS + 'abcdefABCDEF'
 CONSTANTS = {
-    b'null':  None,
-    b'true':  True,
-    b'false': False,
+    'null':  None,
+    'true':  True,
+    'false': False,
+}
+ESCAPES = {
+    r'\\': '\\',
+    r'\"': '"',
+    r'\/': '/',
+    r'\b': '\b',
+    r'\f': '\f',
+    r'\n': '\n',
+    r'\r': '\r',
+    r'\t': '\t',
 }
 
 
 class Tape:
 
-    def __init__(self, data: bytes):
+    def __init__(self, data: str):
         self.data = data
         self.i = 0
         self.n = len(data)
@@ -54,11 +63,11 @@ class Parser:
 
     @property
     def const_heads(self):
-        return b''.join(key[0:1] for key in CONSTANTS.keys())
+        return ''.join(key[0:1] for key in CONSTANTS.keys())
 
     @property
     def number_heads(self):
-        return b'-0123456789'
+        return '-0123456789'
 
     def read_constant(self, tape: Tape):
         i = tape.i
@@ -74,12 +83,12 @@ class Parser:
         fraction = False
         exponent = False
         c = tape.read()
-        if c in b'-123456789':
+        if c in '-123456789':
             tape.step()
-        elif c == b'0':
+        elif c == '0':
             tape.step()
             a = tape.read()
-            assert a in b'.eE' or a in SPACES #or a is None
+            assert a in '.eE' or a in SPACES
         else:
             raise ValueError('not a number')
         while True:
@@ -89,21 +98,21 @@ class Parser:
                 break
             if c in DECIMALS:
                 pass
-            elif c == b'.':
+            elif c == '.':
                 assert (
                     fraction is False and
                     exponent is False and
                     tape.look_behind() in DECIMALS
                 )
                 fraction = True
-            elif c in b'eE':
+            elif c in 'eE':
                 assert (
                     exponent is False and
                     tape.look_behind() in DECIMALS
                 )
                 exponent = True
-            elif c in b'+-':
-                assert tape.look_behind() in b'eE'
+            elif c in '+-':
+                assert tape.look_behind() in 'eE'
             else:
                 break
             tape.step()
@@ -116,19 +125,19 @@ class Parser:
 
     def read_string(self, tape: Tape):
         string = list()
-        assert tape.read() == b'"', 'not a string'
+        assert tape.read() == '"', 'not a string'
         tape.step()
         try:
             while True:
                 c = tape.read()
                 tape.step()
-                if c == b'"':
+                if c == '"':
                     break
-                elif c == b'\\':
-                    if tape.read() in b'"\\/bfnrt':
+                elif c == '\\':
+                    if tape.read() in r'"\/bfnrt':
                         tape.step()
-                        string.append(tape[tape.i-2:tape.i].decode('ascii'))
-                    elif tape.read() == b'u':
+                        string.append(ESCAPES[tape[tape.i-2:tape.i]])
+                    elif tape.read() == 'u':
                         tape.step()
                         try:
                             string.append(chr(int(tape[tape.i:tape.i+4], 16)))
@@ -138,19 +147,19 @@ class Parser:
                     else:
                         raise ValueError('bad escape')
                 else:
-                    string.append(c.decode('ascii'))
+                    string.append(c)
         except StopIteration:
             raise ValueError('string not complete')
         return ''.join(string)
 
     def read_array(self, tape: Tape):
         array = list()
-        assert tape.read() == b'[', 'not an array'
+        assert tape.read() == '[', 'not an array'
         tape.step()
         try:
             tape.skip()
             c = tape.read()
-            if c == b']':
+            if c == ']':
                 tape.step()
             else:
                 while True:
@@ -159,9 +168,9 @@ class Parser:
                     array.append(value)
                     tape.skip()
                     c = tape.read()
-                    if c == b',':
+                    if c == ',':
                         tape.step()
-                    elif c == b']':
+                    elif c == ']':
                         tape.step()
                         break
                     else:
@@ -172,28 +181,28 @@ class Parser:
 
     def read_object(self, tape: Tape):
         obj = dict()
-        assert tape.read() == b'{', 'not an object'
+        assert tape.read() == '{', 'not an object'
         tape.step()
         try:
             tape.skip()
             c = tape.read()
-            if c == b'}':
+            if c == '}':
                 tape.step()
             else:
                 while True:
                     tape.skip()
                     key = self.read_string(tape)
                     tape.skip()
-                    assert tape.read() == b':', 'object missing :'
+                    assert tape.read() == ':', 'object missing :'
                     tape.step()
                     tape.skip()
                     value = self.read_value(tape)
                     obj[key] = value
                     tape.skip()
                     c = tape.read()
-                    if c == b',':
+                    if c == ',':
                         tape.step()
-                    elif c == b'}':
+                    elif c == '}':
                         tape.step()
                         break
                     else:
@@ -208,16 +217,16 @@ class Parser:
             return self.read_constant(tape)
         elif c in self.number_heads:
             return self.read_number(tape)
-        elif c == b'"':
+        elif c == '"':
             return self.read_string(tape)
-        elif c == b'[':
+        elif c == '[':
             return self.read_array(tape)
-        elif c == b'{':
+        elif c == '{':
             return self.read_object(tape)
         else:
             raise ValueError('bad value')
 
-    def __call__(self, data: bytes):
+    def __call__(self, data: str):
         tape = Tape(data)
         tape.skip()
         value = self.read_value(tape)
@@ -228,26 +237,42 @@ class Parser:
 
 if __name__ == '__main__':
 
+    # Q: Why operate on raw strings instead of regular strings?
+    # A: So that escape sequence e.g. linefeed and unicode are not decoded.
+    a = u'\u03A9'
+    b = r'\u03A9'
+    print(f"len({a}) = {len(a)}")
+    print(f"len({b!r}) = {len(b)}")
+
+    # json parser
     parser = Parser()
 
-    print(parser.read_number(Tape(b'12.40')))
-    print(parser.read_number(Tape(b'-3.2e5 ')))
-    print(parser.read_constant(Tape(b'falsed')))
-    print(parser.read_constant(Tape(b'true ,')))
-    print(parser.read_string(Tape(b'"little"')))
-    print(parser.read_string(Tape(b'"big",  0.9')))
-    print(parser.read_string(Tape(b'"\u03A9"')))
-    print(parser.read_array(Tape(b'[null, true, ["hello", {"json":   1.2e-3}   ]]')))
-    print(parser.read_object(Tape(b'{"a": 1, "bcd":   {  "json": false, "xml": [null, 2e-3]}}')))
+    # unit test
+    print(parser.read_number(Tape(r'12.40')))
+    print(parser.read_number(Tape(r'-3.2e5 ')))
+    print(parser.read_constant(Tape(r'falsed')))
+    print(parser.read_constant(Tape(r'true ,')))
+    print(parser.read_string(Tape(r'"little"')))
+    print(parser.read_string(Tape(r'"big",  0.9')))
+    print(parser.read_string(Tape(r'"\u03A9"')))
+    print(parser.read_string(Tape(r'"backslash is \\"')))   # single escape
+    print(parser.read_string(Tape('"backslash is \\\\"')))  # double escape
+    print(parser.read_array(
+        Tape(r'[null,  true,  [ "hello" ,   {"json": 1.2e-3}   ]  ] '))
+    )
+    print(parser.read_object(
+            Tape(r'{"a": 1, "bcd":   {  "json": false, "xml": [null, 2e-3]}}'))
+    )
 
+    # integration test
     examples = [
-        b'\r\t-3.2e5 \n',
-        b'["Sunday",\t"Monday", "Tuesday", \n"Wednesday", \r "Thursday", "Friday",  "Saturday"]',
-        b"""
+        r'  -3.2e5 ',
+        r'["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]',
+        r"""
         {
             "employee": {
                 "name":       "\u03A9 Smith",
-                "salary":      56000,
+                "salary":     56000,
                 "married":    true
                 }
         }
