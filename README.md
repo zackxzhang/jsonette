@@ -4,4 +4,4 @@
 - [x] Python
 - [ ] Haskell
 - [ ] C++
-- [ ] JavaScript
+- [x] JavaScript
