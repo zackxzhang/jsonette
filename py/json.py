@@ -237,12 +237,12 @@ class Parser:
 
 if __name__ == '__main__':
 
-    # Q: Why operate on raw strings instead of regular strings?
-    # A: So that escape sequence e.g. linefeed and unicode are not decoded.
+    # Q: why operate on raw strings instead of regular strings?
+    # A: so that escape sequences like linefeeds and unicodes are not decoded.
     a = u'\u03A9'
     b = r'\u03A9'
-    print(f"len({a}) = {len(a)}")
-    print(f"len({b!r}) = {len(b)}")
+    print(f"len('{a}') = {len(a)}")
+    print(f"len('{b}') = {len(b)}")
 
     # json parser
     parser = Parser()
@@ -269,7 +269,7 @@ if __name__ == '__main__':
     # integration test
     examples = [
         r'  -3.2e5 ',
-        r'["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]',
+        r'["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]',
         r"""
         {
             "employee": {
