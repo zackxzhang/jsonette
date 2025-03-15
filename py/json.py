@@ -84,13 +84,13 @@ class Parser:
         exponent = False
         c = tape.read()
         if c in '-123456789':
-            tape.step()
+            pass
         elif c == '0':
-            tape.step()
-            a = tape.read()
-            assert a in '.eE' or a in SPACES
+            a = tape.look_ahead()
+            assert a is None or a not in DECIMALS
         else:
             raise ValueError('not a number')
+        tape.step()
         while True:
             try:
                 c = tape.read()
@@ -248,6 +248,8 @@ if __name__ == '__main__':
     parser = Parser()
 
     # unit test
+    print(parser.read_number(Tape(r'0')))
+    print(parser.read_number(Tape(r'5')))
     print(parser.read_number(Tape(r'12.40')))
     print(parser.read_number(Tape(r'-3.2e5 ')))
     print(parser.read_constant(Tape(r'falsed')))
