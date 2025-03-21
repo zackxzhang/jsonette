@@ -158,3 +158,11 @@ dmypy.json
 # Sublime Text project settings
 *.sublime-workspace
 *.sublime-project
+
+# custom
+.*rc
+ref*
+tmp*
+json
+*.exe
+*.DS_STORE
