@@ -7,6 +7,6 @@
 *json parsing from scratch*
 
 - [x] Python
-- [ ] Haskell
-- [ ] C++
 - [x] JavaScript
+- [x] C++
+- [ ] Haskell
