@@ -128,14 +128,12 @@ class Parser {
         let c = tape.read();
         if ('-123456789'.includes(c)) {
             // pass
-        }
-        else if (c === '0') {
+        } else if (c === '0') {
             let a = tape.lookAhead();
             if (a !== undefined && DECIMALS.includes(a)) {
                 throw new Error('invalid number');
             }
-        }
-        else {
+        } else {
             throw new Error('not a number');
         }
         tape.step();
@@ -170,19 +168,19 @@ class Parser {
             tape.step();
         }
         const end = tape.i;
-        const numberStr = tape.slice(start, end);
+        const number = tape.slice(start, end);
         if (fraction || exponent) {
-            return parseFloat(numberStr);
+            return parseFloat(number);
 
         } else {
-            return parseInt(numberStr, 10);
+            return parseInt(number, 10);
         }
     }
 
     readString (tape) {
         let string = [];
         let c = tape.read();
-        if (c!== '"') {
+        if (c !== '"') {
             throw new Error('not a string');
         }
         tape.step();
@@ -191,11 +189,9 @@ class Parser {
             tape.step();
             if (c === undefined) {
                 throw new Error('string not complete');
-            }
-            else if (c === '"') {
+            } else if (c === '"') {
                 break;
-            }
-            else if (c === '\\') {
+            } else if (c === '\\') {
                 if (String.raw`"\/bfnrt`.includes(tape.read())) {
                     tape.step();
                     string.push(ESCAPES[tape.slice(tape.i-2, tape.i)]);
@@ -205,16 +201,14 @@ class Parser {
                     let u = parseInt(tape.slice(tape.i, tape.i+4), 16);
                     if (Number.isNaN(u)) {
                         throw new Error('bad hexadecimals');
-                    } else{
+                    } else {
                         string.push(String.fromCodePoint(u));
                     }
                     tape.step(4);
-                }
-                else {
+                } else {
                     throw new Error('bad escape');
                 }
-            }
-            else {
+            } else {
                 string.push(c);
             }
         }
@@ -246,15 +240,12 @@ class Parser {
                 c = tape.read();
                 if (c === undefined) {
                     throw new Error('array not complete');
-                }
-                else if (c === ',') {
+                } else if (c === ',') {
                     tape.step();
-                }
-                else if (c === ']') {
+                } else if (c === ']') {
                     tape.step();
                     break;
-                }
-                else {
+                } else {
                     throw new Error('array missing , or ]');
                 }
             }
@@ -274,11 +265,9 @@ class Parser {
         c = tape.read();
         if (c === undefined) {
             throw new Error('object not complete');
-        }
-        else if (c === '}') {
+        } else if (c === '}') {
             tape.step();
-        }
-        else{
+        } else {
             while (true) {
                 tape.skip();
                 key = this.readString(tape);
@@ -286,8 +275,7 @@ class Parser {
                 c = tape.read();
                 if (c === undefined) {
                     throw new Error('object not complete');
-                }
-                else if (c !== ':') {
+                } else if (c !== ':') {
                     throw new Error('object missing :');
                 }
                 tape.step();
@@ -298,15 +286,12 @@ class Parser {
                 c = tape.read();
                 if (c === undefined) {
                     throw new Error('object not complete');
-                }
-                else if (c === ',') {
+                } else if (c === ',') {
                     tape.step();
-                }
-                else if (c === '}') {
+                } else if (c === '}') {
                     tape.step();
                     break;
-                }
-                else {
+                } else {
                     throw new Error('object missing , or }');
                 }
             }
@@ -318,20 +303,15 @@ class Parser {
         let c = tape.read();
         if (this.constHeads.includes(c)) {
             return this.readConstant(tape);
-        }
-        else if (this.numberHeads.includes(c)) {
+        } else if (this.numberHeads.includes(c)) {
             return this.readNumber(tape);
-        }
-        else if (c === '"') {
+        } else if (c === '"') {
             return this.readString(tape);
-        }
-        else if (c === '[') {
+        } else if (c === '[') {
             return this.readArray(tape);
-        }
-        else if (c === '{') {
+        } else if (c === '{') {
             return this.readObject(tape);
-        }
-        else {
+        } else {
             throw new Error('bad value');
         }
     }
