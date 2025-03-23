@@ -2,8 +2,6 @@
 
 
 #include <iostream>
-#include <memory>
-#include <string>
 #include <vector>
 #include <unordered_map>
 #include <variant>
@@ -143,9 +141,9 @@ std::string fromCodePoint(uint32_t cp) {
 }
 
 
-constexpr std::string SPACES = " \n\r\t";
+constexpr std::string SPACES   = " \n\r\t";
 constexpr std::string DECIMALS = "0123456789";
-constexpr std::string HEXADECIMALS = DECIMALS + "abcdefABCDEF";
+const std::string HEXADECIMALS = "0123456789abcdefABCDEF";
 const std::unordered_map<char, char> ESCAPES = {
     {'\\', '\\'},
     {'"', '"'},
@@ -266,7 +264,7 @@ private:
 
 public:
 
-    nullptr_t read_null(Tape& tape) {
+    std::nullptr_t read_null(Tape& tape) {
         size_t i = tape.i;
         if ("null" == tape[i, i+4]) {
             tape.step(4);
