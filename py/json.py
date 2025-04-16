@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # json parsing in python
 
 
@@ -263,7 +262,7 @@ if __name__ == '__main__':
         Tape(r'[null,  true,  [ "hello" ,   {"json": 1.2e-3}   ]  ] '))
     )
     print(parser.read_object(
-            Tape(r'{"a": 1, "bcd":   {  "json": false, "xml": [null, 2e-3]}}'))
+        Tape(r'{"a": 1, "bcd":   {  "json": false, "xml": [null, 2e-3]}}'))
     )
 
     # integration test

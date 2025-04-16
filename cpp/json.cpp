@@ -562,7 +562,7 @@ int main() {
     std::cout << parser.read_string(t12) << std::endl;
 
     auto t13 = Tape(R"([null,  true,  [ "hello" ,   {"json": 1.2e-3}   ]  ] )");
-    auto t14 = Tape(R"({"a":1, "bcd":  { "json": false, "xml":[null, 2e-3]}})");
+    auto t14 = Tape(R"({"a":1, "bcd":  { "json": false, "xml": [null,2e-3]}})");
     print(JSON {parser.read_array(t13)} );
     print(JSON {parser.read_object(t14)});
 

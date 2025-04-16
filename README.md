@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/github/license/zackxzhang/jsonette)](https://opensource.org/licenses/BSD-3-Clause)
 [![Last Commit](https://img.shields.io/github/last-commit/zackxzhang/jsonette)](https://github.com/zackxzhang/jsonette)
 
-*json parsing from scratch*
+*json parsing from scratch (decoder only)*
 
 - [x] Python
 - [x] JavaScript
