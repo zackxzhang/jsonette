@@ -1,10 +1,15 @@
 -- json parsing in haskell --
 
+{-# LANGUAGE LambdaCase #-}
+module JSON where
 
 import Control.Applicative (Alternative(..), optional)
+import Data.Char (isDigit, isHexDigit, isSpace, digitToInt, chr, ord)
+import Data.Functor (($>))
 import Data.List (intercalate)
 
 
+-- json
 data JValue = JNull
             | JBool Bool
             | JString String
@@ -13,9 +18,8 @@ data JValue = JNull
             | JObject [(String, JValue)]
             deriving (Eq)
 
-
 instance Show JValue where
-    show value = case value of
+    show jvalue = case jvalue of
         JNull         -> "null"
         JBool   True  -> "true"
         JBool   False -> "false"
@@ -30,28 +34,64 @@ instance Show JValue where
             showKV (k, v) = show k ++ ": " ++ show v
 
 
-escape :: Char -> Char
-escape c = case c of
-    '\\' -> '\\'
-    '"'  -> '"'
-    '/'  -> '/'
-    'b'  -> '\b'
-    'f'  -> '\f'
-    'n'  -> '\n'
-    'r'  -> '\r'
-    't'  -> '\t'
-    _    ->  c
+-- parser
+newtype Parser i o = Parser { runParser :: i -> Maybe (i, o) }
 
 
-newtype Parser i o = Parser { parse :: i -> Maybe (i, o) }
+---- functor: post-processing output
+instance Functor (Parser i) where
+    fmap fo p = Parser $ fmap (fmap fo) . runParser p
 
--- lookAhead :: Parser String Char
+beginWith :: (a -> Bool) -> Parser [a] a
+beginWith predicate = Parser $ \case
+    (x:xs) | predicate x -> Just (xs, x)
+    _                    -> Nothing
 
--- jNull :: Parser String JValue
+digit :: Parser String Int
+digit = digitToInt <$> beginWith isDigit
 
--- jBool :: Parser String JValue
+
+---- applicative: pipelining head and tail
+instance Applicative (Parser i) where
+    pure x    = Parser $ pure . (, x)
+    ph <*> pt = Parser $ \i -> case runParser ph i of
+        Nothing        -> Nothing
+        Just (rest, fh) -> fmap fh <$> runParser pt rest
+
+char :: Char -> Parser String Char
+char c = beginWith (==c)
+
+string :: String -> Parser String String
+string ""     = pure ""
+string (c:cs) = (:) <$> char c <*> string cs
+
+jNull :: Parser String JValue
+jNull = string "null" $> JNull
+
+
+---- alternative: switching between possibilities
+instance Alternative (Parser i) where
+    empty = Parser $ const empty
+    p1 <|> p2 = Parser $ \i -> runParser p1 i <|> runParser p2 i
+
+jBool :: Parser String JValue
+jBool = string "true"  $> JBool True
+    <|> string "false" $> JBool False
+
 
 -- jString :: Parser String JValue
+
+escape :: Char -> Maybe Char
+escape c = case c of
+    '\\' -> Just '\\'
+    '"'  -> Just '"'
+    '/'  -> Just '/'
+    'b'  -> Just '\b'
+    'f'  -> Just '\f'
+    'n'  -> Just '\n'
+    'r'  -> Just '\r'
+    't'  -> Just '\t'
+    _    -> Nothing
 
 -- jNumber :: Parser String JValue
 
@@ -63,5 +103,12 @@ newtype Parser i o = Parser { parse :: i -> Maybe (i, o) }
 
 
 main :: IO ()
-main = putStrLn "Parsing JSON from scratch in Haskell!"
-
+main = do
+    -- unit test
+    print (runParser jNull "null")
+    print (runParser jNull "dull")
+    print (runParser jBool "true")
+    print (runParser jBool "false")
+    print (runParser jBool "truth")
+    print (runParser jBool "falsehood")
+    -- integration test
