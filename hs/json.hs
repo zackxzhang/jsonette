@@ -2,7 +2,7 @@
 -- a top-down, combinator approach --
 
 
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE LambdaCase, MultilineStrings #-}
 module JSON where
 
 import Control.Applicative (Alternative(..), optional)
@@ -32,7 +32,7 @@ instance Show JValue where
         JNumber i 0 e -> show i ++ "e" ++ show e
         JNumber i f e -> show i ++ "." ++ show f ++ "e" ++ show e
         JArray  a     -> "[" ++ intercalate ", " (map show a) ++ "]"
-        JObject o     -> "[" ++ intercalate ", " (map showKV o) ++ "]"
+        JObject o     -> "{" ++ intercalate ", " (map showKV o) ++ "}"
         where
             showKV (k, v) = show k ++ ": " ++ show v
 
@@ -113,7 +113,7 @@ jChar = string "\\\"" $> '"'
     <|> satisfy (\c -> not (c == '\"' || c == '\\'))
 
 
----- monad :: sequencing
+---- monad :: conditioning
 instance Monad (Parser i) where
     p >>= f = Parser $ \i -> case runParser p i of
         Nothing        -> Nothing
@@ -129,7 +129,7 @@ jString = JString <$> (char '"' *> jString')
             case o of
                 -- (<$) :: Functor f => a -> f b -> f a
                 -- (<$) = fmap . const
-                Nothing -> "" <$ char '"'
+                Nothing -> ""   <$  char '"'
                 Just c  -> (c:) <$> jString'
 
 
@@ -175,16 +175,56 @@ jNumber :: Parser String JValue
 jNumber = jIntFracExp <|> jIntExp <|> jIntFrac <|> jInt
 
 
----- parser combinators for arrays & objects
--- jArray :: Parser String JValue
+---- parser combinators for arrays, objects, values
+surroundedBy :: Parser String a -> Parser String b -> Parser String a
+surroundedBy v w = w *> v <* w
 
--- jObject :: Parser String JValue
+separatedBy :: Parser i v -> Parser i s -> Parser i [v]
+separatedBy v s =   (:) <$> v <*> many (s *> v) <|> pure []
+
+spaces :: Parser String String
+spaces = many (char ' ' <|> char '\n' <|> char '\r' <|> char '\t')
+
+jArray :: Parser String JValue
+jArray = JArray <$>
+    (
+        char '[' *>
+        jValue `separatedBy` char ',' `surroundedBy` spaces
+        <* char ']'
+    )
+
+jObject :: Parser String JValue
+jObject = JObject <$>
+    (
+        char '{' *>
+        pair `separatedBy` char ',' `surroundedBy` spaces
+        <* char '}'
+    )
+    where
+        pair = (\ ~(JString s) j -> (s, j))
+           <$> (jString `surroundedBy` spaces)
+           <*  char ':'
+           <*> jValue
+
+jValue :: Parser String JValue
+jValue = jValue' `surroundedBy` spaces
+  where
+    jValue' = jNull
+          <|> jBool
+          <|> jString
+          <|> jNumber
+          <|> jArray
+          <|> jObject
 
 
----- json parser
--- jValue :: Parser String JValue
+-- json parser
+parse :: String -> Maybe JValue
+parse s = case runParser jValue s of
+    Just ("", j) -> Just j
+    _            -> Nothing
 
 
+-- test
 main :: IO ()
 main = do
     -- unit test
@@ -205,4 +245,17 @@ main = do
     print (runParser jNumber "+5")
     print (runParser jNumber "12.40")
     print (runParser jNumber "-3.2e5 ")
+    print (runParser jArray "[null,  [ \"hello\" ,   {\"json\": 1.2e-3}  ] ] ")
+    print (runParser jObject "{\"a\":1,\"bcd\":   {  \"xml\": [null, -2.3] }}")
     -- integration test
+    print (parse "  -3.2e5 ")
+    print (parse "[\"Mon\",\"Tue\",\"Wed\", \"Thu\",\"Fri\", \"Sat\",\"Sun\"]")
+    print (parse """
+        {
+            \"employee\": {
+                \"name\":       \"\\u03A9 Smith\",
+                \"salary\":     56000,
+                \"married\":    true
+            }
+        }
+    """)
