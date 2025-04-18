@@ -37,7 +37,7 @@ instance Show JValue where
             showKV (k, v) = show k ++ ": " ++ show v
 
 
--- parser
+-- generic parser
 newtype Parser i o = Parser { runParser :: i -> Maybe (i, o) }
 
 
@@ -53,6 +53,9 @@ satisfy predicate = Parser $ \case
 digit :: Parser String Int
 digit = digitToInt <$> satisfy isDigit
 
+digit' :: Parser String Int
+digit' = digitToInt <$> satisfy (\x -> isDigit x && x /= '0')
+
 hexDigit :: Parser String Int
 hexDigit = digitToInt <$> satisfy isHexDigit
 
@@ -63,7 +66,7 @@ digitsToNumber base = foldl step 0
 
 ---- applicative :: pipelining
 instance Applicative (Parser i) where
-    pure x    = Parser $ pure . (, x)
+    pure x    = Parser $ \i -> Just (i, x)
     ph <*> pt = Parser $ \i -> case runParser ph i of
         Nothing        -> Nothing
         Just (rest, fh) -> fmap fh <$> runParser pt rest
@@ -129,12 +132,56 @@ jString = JString <$> (char '"' *> jString')
                 Nothing -> "" <$ char '"'
                 Just c  -> (c:) <$> jString'
 
--- jNumber :: Parser String JValue
 
+---- parser combinators for numbers
+digits :: Parser String [Int]
+digits = some digit
+    -- some :: Alternative f => f a -> f [a]
+    -- some v = (:) <$> v <*> many v
+    -- many :: Alternative f => f a -> f [a]
+    -- many v = some v <|> pure []
+
+jUInt :: Parser String Integer
+jUInt = (\d ds -> digitsToNumber 10 (d:ds)) <$> digit' <*> digits
+    <|> fromIntegral <$> digit
+
+sign :: Maybe Char -> Integer -> Integer
+sign (Just '-') i = negate i
+sign _          i = i
+
+jSInt :: Parser String Integer
+jSInt = sign <$> optional (char '-') <*> jUInt
+
+jFrac :: Parser String Integer
+jFrac = char '.' *> (fromIntegral . digitsToNumber 10 <$> digits)
+
+jExp :: Parser String Integer
+jExp = (char 'e' <|> char 'E')
+    *> (sign <$> optional (char '+' <|> char '-') <*> jUInt)
+
+jInt :: Parser String JValue
+jInt = JNumber <$> jSInt <*> pure 0 <*> pure 0
+
+jIntExp :: Parser String JValue
+jIntExp = JNumber <$> jSInt <*> pure 0 <*> jExp
+
+jIntFrac :: Parser String JValue
+jIntFrac = JNumber <$> jSInt <*> jFrac <*> pure 0
+
+jIntFracExp :: Parser String JValue
+jIntFracExp = JNumber <$> jSInt <*> jFrac <*> jExp
+
+jNumber :: Parser String JValue
+jNumber = jIntFracExp <|> jIntExp <|> jIntFrac <|> jInt
+
+
+---- parser combinators for arrays & objects
 -- jArray :: Parser String JValue
 
 -- jObject :: Parser String JValue
 
+
+---- json parser
 -- jValue :: Parser String JValue
 
 
@@ -152,4 +199,10 @@ main = do
     print (runParser jString "\"little")
     print (runParser jString "\"big\", 0.9")
     print (runParser jString "\"backslash is \\\\\"")
+    print (runParser jNumber "0")
+    print (runParser jNumber "5")
+    print (runParser jNumber "5 1")
+    print (runParser jNumber "+5")
+    print (runParser jNumber "12.40")
+    print (runParser jNumber "-3.2e5 ")
     -- integration test
