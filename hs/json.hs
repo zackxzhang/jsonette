@@ -78,6 +78,9 @@ string (c:cs) = (:) <$> char c <*> string cs
 unicode :: Parser String Char
 unicode = chr . fromIntegral . digitsToNumber 16
             <$> (string "\\u" *> replicateM 4 hexDigit)
+            -- replicateM :: Applicative m => Int -> m a -> m [a]
+            -- (*>) :: Applicative f => f a -> f b -> f b
+            -- u *> v = (id <$ u) <*> v
 
 
 ---- alternative :: branching
@@ -87,6 +90,8 @@ instance Alternative (Parser i) where
 
 jNull :: Parser String JValue
 jNull = string "null" $> JNull
+    -- ($>) :: Functor f => f a -> b -> f b
+    -- x $> y = y <$ x
 
 jBool :: Parser String JValue
 jBool = string "true"  $> JBool True
@@ -115,8 +120,12 @@ jString :: Parser String JValue
 jString = JString <$> (char '"' *> jString')
     where
         jString' = do
-            firstChar <- optional jChar
-            case firstChar of
+            -- optional :: Alternative f => f a -> f (Maybe a)
+            -- optional p = Just <$> p <|> pure Nothing
+            o <- optional jChar
+            case o of
+                -- (<$) :: Functor f => a -> f b -> f a
+                -- (<$) = fmap . const
                 Nothing -> "" <$ char '"'
                 Just c  -> (c:) <$> jString'
 
