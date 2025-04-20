@@ -12,7 +12,7 @@ import Data.Functor (($>))
 import Data.List (intercalate)
 
 
--- json
+-- json structure
 data JValue = JNull
             | JBool Bool
             | JString String
@@ -188,17 +188,17 @@ spaces = many (char ' ' <|> char '\n' <|> char '\r' <|> char '\t')
 jArray :: Parser String JValue
 jArray = JArray <$>
     (
-        char '[' *>
-        jValue `separatedBy` char ',' `surroundedBy` spaces
-        <* char ']'
+        char '['
+     *> jValue `separatedBy` char ',' `surroundedBy` spaces
+     <* char ']'
     )
 
 jObject :: Parser String JValue
 jObject = JObject <$>
     (
-        char '{' *>
-        pair `separatedBy` char ',' `surroundedBy` spaces
-        <* char '}'
+        char '{'
+     *> pair `separatedBy` char ',' `surroundedBy` spaces
+     <* char '}'
     )
     where
         pair = (\ ~(JString s) j -> (s, j))
