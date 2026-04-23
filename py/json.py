@@ -28,20 +28,20 @@ class Tape:
         self.i = 0
         self.n = len(data)
 
-    def look_ahead(self):
+    def look_ahead(self) -> str:
         if self.i+1 >= self.n:
-            return None
-        return self.data[self.i+1:self.i+2]
+            return ''
+        return self.data[self.i+1]
 
-    def look_behind(self):
+    def look_behind(self) -> str:
         if self.i-1 < 0:
-            return None
-        return self.data[self.i-1:self.i]
+            return ''
+        return self.data[self.i-1]
 
-    def read(self):
+    def read(self) -> str:
         if self.i >= self.n:
             raise StopIteration
-        return self.data[self.i:self.i+1]
+        return self.data[self.i]
 
     def step(self, k=1):
         self.i += k
@@ -51,7 +51,7 @@ class Tape:
             self.i += 1
 
     @property
-    def rear(self):
+    def rear(self) -> bool:
         return self.i >= self.n
 
     def __getitem__(self, key):
@@ -86,7 +86,7 @@ class Parser:
             pass
         elif c == '0':
             a = tape.look_ahead()
-            assert a is None or a not in DECIMALS
+            assert not a or a not in DECIMALS
         else:
             raise ValueError('not a number')
         tape.step()
@@ -98,20 +98,23 @@ class Parser:
             if c in DECIMALS:
                 pass
             elif c == '.':
+                b = tape.look_behind()
                 assert (
                     fraction is False and
                     exponent is False and
-                    tape.look_behind() in DECIMALS
+                    b and b in DECIMALS
                 )
                 fraction = True
             elif c in 'eE':
+                b = tape.look_behind()
                 assert (
                     exponent is False and
-                    tape.look_behind() in DECIMALS
+                    b and b in DECIMALS
                 )
                 exponent = True
             elif c in '+-':
-                assert tape.look_behind() in 'eE'
+                b = tape.look_behind()
+                assert b and b in 'eE'
             else:
                 break
             tape.step()
