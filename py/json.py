@@ -1,23 +1,23 @@
 # json parsing in python
 
 
-SPACES = ' \n\r\t'
-DECIMALS = '0123456789'
-HEXADECIMALS = DECIMALS + 'abcdefABCDEF'
+NUMBERS = '0123456789'
+_NUMBERS = '-0123456789'
 CONSTANTS = {
     'null':  None,
     'true':  True,
     'false': False,
 }
+_CONSTANTS = ''.join(key[0:1] for key in CONSTANTS.keys())
 ESCAPES = {
-    r'\\': '\\',
-    r'\"': '"',
-    r'\/': '/',
-    r'\b': '\b',
-    r'\f': '\f',
-    r'\n': '\n',
-    r'\r': '\r',
-    r'\t': '\t',
+    '\\': '\\',
+    '"':  '"',
+    '/':  '/',
+    'b':  '\b',
+    'f':  '\f',
+    'n':  '\n',
+    'r':  '\r',
+    't':  '\t',
 }
 
 
@@ -43,11 +43,11 @@ class Tape:
             raise StopIteration
         return self.data[self.i]
 
-    def step(self, k=1):
+    def step(self, k: int = 1):
         self.i += k
 
     def skip(self):
-        while self.i < self.n and self.data[self.i:self.i+1] in SPACES:
+        while self.i < self.n and self.data[self.i].isspace():
             self.i += 1
 
     @property
@@ -59,14 +59,6 @@ class Tape:
 
 
 class Parser:
-
-    @property
-    def const_heads(self):
-        return ''.join(key[0:1] for key in CONSTANTS.keys())
-
-    @property
-    def number_heads(self):
-        return '-0123456789'
 
     def read_constant(self, tape: Tape):
         i = tape.i
@@ -86,7 +78,7 @@ class Parser:
             pass
         elif c == '0':
             a = tape.look_ahead()
-            assert not a or a not in DECIMALS
+            assert not a or a not in NUMBERS
         else:
             raise ValueError('not a number')
         tape.step()
@@ -95,21 +87,21 @@ class Parser:
                 c = tape.read()
             except StopIteration:
                 break
-            if c in DECIMALS:
+            if c in NUMBERS:
                 pass
             elif c == '.':
                 b = tape.look_behind()
                 assert (
                     fraction is False and
                     exponent is False and
-                    b and b in DECIMALS
+                    b and b in NUMBERS
                 )
                 fraction = True
             elif c in 'eE':
                 b = tape.look_behind()
                 assert (
                     exponent is False and
-                    b and b in DECIMALS
+                    b and b in NUMBERS
                 )
                 exponent = True
             elif c in '+-':
@@ -136,10 +128,11 @@ class Parser:
                 if c == '"':
                     break
                 elif c == '\\':
-                    if tape.read() in r'"\/bfnrt':
+                    d = tape.read()
+                    if d in r'"\/bfnrt':
                         tape.step()
-                        string.append(ESCAPES[tape[tape.i-2:tape.i]])
-                    elif tape.read() == 'u':
+                        string.append(ESCAPES[d])
+                    elif d == 'u':
                         tape.step()
                         try:
                             string.append(chr(int(tape[tape.i:tape.i+4], 16)))
@@ -215,9 +208,9 @@ class Parser:
 
     def read_value(self, tape: Tape):
         c = tape.read()
-        if c in self.const_heads:
+        if c in _CONSTANTS:
             return self.read_constant(tape)
-        elif c in self.number_heads:
+        elif c in _NUMBERS:
             return self.read_number(tape)
         elif c == '"':
             return self.read_string(tape)
