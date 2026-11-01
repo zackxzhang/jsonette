@@ -3,29 +3,27 @@
 
 use std::collections::HashMap;
 
-
+struct JNull;
+struct JBool(bool);
+struct JString(String);
+enum JNumber {
+    Int(i64),
+    Float(f64),
+}
+struct JArray(Vec<JValue>);
+struct JObject(HashMap<String, JValue>);
 enum JValue {
-    JNull,
-    JBool(bool),
-    JString(String),
-    JNumber { int: i32, frac: i32, expo: i32 },
-    JArray(Vec<JValue>),
-    JObject(HashMap<String, JValue>),
+    Null(JNull),
+    Bool(JBool),
+    String(JString),
+    Number(JNumber),
+    Array(JArray),
+    Object(JObject),
 }
 
 
 static NUMBERS: &str = "0123456789";
 static _NUMBERS: &str = "-0123456789";
-
-
-fn to_constant(s: &str) -> Result<JValue, String> {
-    match s {
-        "null"  => Ok(JValue::JNull),
-        "true"  => Ok(JValue::JBool(true)),
-        "false" => Ok(JValue::JBool(false)),
-        _       => Err(format!("not a constant: {:?}", s)),
-    }
-}
 
 
 fn to_escape(c: char) -> Result<char, String> {
@@ -45,44 +43,57 @@ fn to_escape(c: char) -> Result<char, String> {
 
 struct Tape<'a> {
     data: &'a str,
-    cursor: usize,
+    i: usize,
 }
-
 
 impl<'a> Tape<'a> {
 
     fn new(data: &'a str) -> Self {
-        Self { data, cursor: 0 }
+        Self { data, i: 0 }
     }
 
     fn look_ahead(&self) -> Option<char> {
-        self.data.get(self.cursor..)?.chars().nth(1)
+        self.data.get(self.i..)?.chars().nth(1)
     }
 
     fn look_behind(&self) -> Option<char> {
-        self.data.get(..self.cursor)?.chars().next_back()
+        self.data.get(..self.i)?.chars().next_back()
     }
 
     fn read(&self) -> Option<char> {
-        self.data.get(self.cursor..)?.chars().next()
+        self.data.get(self.i..)?.chars().next()
     }
 
-    fn step(&mut self) {
-        if let Some(c) = self.read() {
-            self.cursor += c.len_utf8();
-        }
+    fn step(&mut self, k: usize) {
+        self.i += k;
     }
 
     fn skip(&mut self) {
         while let Some(c) = self.read() {
             if c.is_whitespace() {
-                self.step();
+                self.step(1);
             } else {
                 break;
             }
         }
     }
 
+}
+
+use std::ops::{Index, Range, RangeFull};
+
+impl<'a> Index<Range<usize>> for Tape<'a> {
+    type Output = str;
+    fn index(&self, range: Range<usize>) -> &str {
+        &self.data[range]
+    }
+}
+
+impl<'a> Index<RangeFull> for Tape<'a> {
+    type Output = str;
+    fn index(&self, _range: RangeFull) -> &str {
+        &self.data[..]
+    }
 }
 
 
