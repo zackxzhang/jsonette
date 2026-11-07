@@ -135,7 +135,8 @@ class Parser:
                     elif d == 'u':
                         tape.step()
                         try:
-                            string.append(chr(int(tape[tape.i:tape.i+4], 16)))
+                            i = tape.i
+                            string.append(chr(int(tape[i:i+4], 16)))
                         except ValueError as exc:
                             raise ValueError('bad hexadecimals') from exc
                         tape.step(4)

@@ -180,7 +180,7 @@ surroundedBy :: Parser String a -> Parser String b -> Parser String a
 surroundedBy v w = w *> v <* w
 
 separatedBy :: Parser i v -> Parser i s -> Parser i [v]
-separatedBy v s =   (:) <$> v <*> many (s *> v) <|> pure []
+separatedBy v s = (:) <$> v <*> many (s *> v) <|> pure []
 
 spaces :: Parser String String
 spaces = many (char ' ' <|> char '\n' <|> char '\r' <|> char '\t')
